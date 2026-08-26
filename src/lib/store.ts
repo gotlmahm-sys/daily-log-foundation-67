@@ -122,7 +122,7 @@ export function logAudit(
     actorName: actor.fullName,
     action,
     target,
-    details,
+    ...(details ? { details } : {}),
   });
   write(KEYS.audit, events.slice(0, 500));
 }
