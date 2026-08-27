@@ -33,9 +33,10 @@ export function AppShell({ children, requires }: { children: ReactNode; requires
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
             <h1 className="truncate text-base font-bold">السجل اليومي الإلكتروني</h1>
-            <p className="truncate text-xs text-muted-foreground">
-              {user.fullName} · <Badge variant="secondary" className="align-middle">{ROLE_LABEL[user.role]}</Badge>
-            </p>
+            <div className="flex items-center gap-2 truncate text-xs text-muted-foreground">
+              <span className="truncate">{user.fullName}</span>
+              <Badge variant="secondary">{ROLE_LABEL[user.role]}</Badge>
+            </div>
           </div>
           <Button variant="outline" size="sm" onClick={logout}>
             <LogOut className="size-4" />
