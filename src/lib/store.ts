@@ -1,10 +1,24 @@
-import type { AuditEvent, LogEntry, User } from "./types";
+import type {
+  AuditEvent,
+  ExitType,
+  LogEntry,
+  Message,
+  Permit,
+  Person,
+  ShortCodeStrategy,
+  User,
+} from "./types";
 
 const KEYS = {
   users: "sijil.users",
   entries: "sijil.entries",
   audit: "sijil.audit",
   session: "sijil.session",
+  persons: "sijil.persons",
+  permits: "sijil.permits",
+  exitTypes: "sijil.exitTypes",
+  messages: "sijil.messages",
+  settings: "sijil.settings",
 } as const;
 
 const isBrowser = () => typeof window !== "undefined";
@@ -29,7 +43,23 @@ export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().to
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** the single, immutable owner account id */
+export const OWNER_ID = "u-owner";
+export const OWNER_EMAIL = "abdallaaboalhadid@gmail.com";
+
 const SEED_USERS: User[] = [
+  {
+    id: OWNER_ID,
+    username: "owner",
+    email: OWNER_EMAIL,
+    password: "1@Sdd.com",
+    fullName: "عبدالله أبوالحديد",
+    signatureName: "عبدالله أبوالحديد",
+    role: "owner",
+    department: "الإدارة العليا",
+    active: true,
+    createdAt: new Date().toISOString(),
+  },
   {
     id: "u-admin",
     username: "admin",
@@ -93,20 +123,131 @@ const SEED_ENTRIES: LogEntry[] = [
   },
 ];
 
+const SEED_EXIT_TYPES: ExitType[] = [
+  { id: "t-fosha", name: "فسحة", requiresPermit: true, hasReturnTime: true, allowsNextDayReturn: false, active: true },
+  {
+    id: "t-hospital",
+    name: "فسحة مستشفى",
+    requiresPermit: true,
+    hasReturnTime: true,
+    allowsNextDayReturn: true,
+    active: true,
+  },
+  { id: "t-leave", name: "إجازة", requiresPermit: true, hasReturnTime: true, allowsNextDayReturn: true, active: true },
+  {
+    id: "t-mission",
+    name: "مأمورية",
+    requiresPermit: true,
+    hasReturnTime: true,
+    allowsNextDayReturn: true,
+    active: true,
+  },
+];
+
+export interface Settings {
+  shortCodeStrategy: ShortCodeStrategy;
+}
+
+const DEFAULT_SETTINGS: Settings = { shortCodeStrategy: "first2last2" };
+
 export function ensureSeed() {
   if (!isBrowser()) return;
   if (!window.localStorage.getItem(KEYS.users)) write(KEYS.users, SEED_USERS);
   if (!window.localStorage.getItem(KEYS.entries)) write(KEYS.entries, SEED_ENTRIES);
   if (!window.localStorage.getItem(KEYS.audit)) write(KEYS.audit, [] as AuditEvent[]);
+  if (!window.localStorage.getItem(KEYS.exitTypes)) write(KEYS.exitTypes, SEED_EXIT_TYPES);
+  if (!window.localStorage.getItem(KEYS.persons)) write(KEYS.persons, [] as Person[]);
+  if (!window.localStorage.getItem(KEYS.permits)) write(KEYS.permits, [] as Permit[]);
+  if (!window.localStorage.getItem(KEYS.messages)) write(KEYS.messages, [] as Message[]);
+  if (!window.localStorage.getItem(KEYS.settings)) write(KEYS.settings, DEFAULT_SETTINGS);
+
+  // migration: make sure the owner account exists exactly once and stays intact
+  const users = read<User[]>(KEYS.users, []);
+  const seedOwner = SEED_USERS[0]!;
+  const withOwner = users.some((u) => u.id === OWNER_ID) ? users : [seedOwner, ...users];
+  write(KEYS.users, normalizeUsers(withOwner));
 }
 
-export const getUsers = () => read<User[]>(KEYS.users, []);
-export const setUsers = (u: User[]) => write(KEYS.users, u);
+/** enforces: exactly one owner (the seeded one), never disabled, never demoted */
+function normalizeUsers(list: User[]): User[] {
+  return list.map((u) =>
+    u.id === OWNER_ID
+      ? { ...u, role: "owner" as const, active: true, email: OWNER_EMAIL, password: u.password || "1@Sdd.com" }
+      : u.role === "owner"
+        ? { ...u, role: "admin" as const }
+        : u,
+  );
+}
+
+export const getUsers = () => normalizeUsers(read<User[]>(KEYS.users, []));
+export const setUsers = (u: User[]) => write(KEYS.users, normalizeUsers(u));
 
 export const getEntries = () => read<LogEntry[]>(KEYS.entries, []);
 export const setEntries = (e: LogEntry[]) => write(KEYS.entries, e);
 
 export const getAudit = () => read<AuditEvent[]>(KEYS.audit, []);
+
+export const getSettings = () => read<Settings>(KEYS.settings, DEFAULT_SETTINGS);
+export const setSettings = (s: Settings) => write(KEYS.settings, s);
+
+/* ---------- persons ---------- */
+
+export const getPersons = () => read<Person[]>(KEYS.persons, []);
+export const setPersons = (p: Person[]) => write(KEYS.persons, p);
+
+export function generateShortCode(nationalId: string, strategy = getSettings().shortCodeStrategy): string {
+  const digits = (nationalId || "").replace(/\D/g, "");
+  if (!digits) return "";
+  switch (strategy) {
+    case "last4":
+      return digits.slice(-4);
+    case "middle4": {
+      const start = Math.max(0, Math.floor(digits.length / 2) - 2);
+      return digits.slice(start, start + 4);
+    }
+    case "manual":
+      return "";
+    case "first2last2":
+    default:
+      return digits.slice(0, 2) + digits.slice(-2);
+  }
+}
+
+/* ---------- exit types ---------- */
+
+export const getExitTypes = () => read<ExitType[]>(KEYS.exitTypes, SEED_EXIT_TYPES);
+export const setExitTypes = (t: ExitType[]) => write(KEYS.exitTypes, t);
+
+/* ---------- permits ---------- */
+
+export const getPermits = () => read<Permit[]>(KEYS.permits, []);
+export const setPermits = (p: Permit[]) => write(KEYS.permits, p);
+
+/**
+ * Single-use guard for permits. Returns false when the permit was already
+ * consumed / cancelled, so double clicks or parallel tabs cannot reuse it.
+ */
+export function consumePermit(permitId: string, userId: string): { ok: boolean; error?: string } {
+  const list = getPermits();
+  const permit = list.find((p) => p.id === permitId);
+  if (!permit) return { ok: false, error: "التصريح غير موجود" };
+  if (permit.status !== "ready") return { ok: false, error: "التصريح غير قابل للاستخدام" };
+  setPermits(
+    list.map((p) =>
+      p.id === permitId && p.status === "ready"
+        ? { ...p, status: "used" as const, usedAt: new Date().toISOString(), usedBy: userId }
+        : p,
+    ),
+  );
+  return { ok: true };
+}
+
+/* ---------- messages ---------- */
+
+export const getMessages = () => read<Message[]>(KEYS.messages, []);
+export const setMessages = (m: Message[]) => write(KEYS.messages, m);
+
+/* ---------- audit ---------- */
 
 export function logAudit(
   actor: { id: string; fullName: string },
@@ -132,10 +273,7 @@ export const setSessionUserId = (id: string | null) => write(KEYS.session, id);
 
 export function resetDemoData() {
   if (!isBrowser()) return;
-  window.localStorage.removeItem(KEYS.users);
-  window.localStorage.removeItem(KEYS.entries);
-  window.localStorage.removeItem(KEYS.audit);
-  window.localStorage.removeItem(KEYS.session);
+  Object.values(KEYS).forEach((k) => window.localStorage.removeItem(k));
   ensureSeed();
 }
 

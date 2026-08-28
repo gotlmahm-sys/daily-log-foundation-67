@@ -12,12 +12,16 @@ import {
 interface AuthValue {
   user: User | null;
   ready: boolean;
-  login: (username: string, password: string) => { ok: boolean; error?: string };
+  login: (identifier: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
   can: (p: Permission) => boolean;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
+
+export function permissionsOf(user: User): Permission[] {
+  return Array.from(new Set([...ROLE_PERMISSIONS[user.role], ...(user.extraPermissions ?? [])]));
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -36,22 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return subscribe(sync);
   }, [sync]);
 
-  const login: AuthValue["login"] = useCallback(
-    (username, password) => {
-      const found = getUsers().find(
-        (u) => u.username.toLowerCase() === username.trim().toLowerCase(),
-      );
-      if (!found || found.password !== password) {
-        return { ok: false, error: "اسم المستخدم أو كلمة المرور غير صحيحة" };
-      }
-      if (!found.active) return { ok: false, error: "الحساب موقوف، راجع مدير النظام" };
-      setSessionUserId(found.id);
-      logAudit(found, "تسجيل دخول", found.username);
-      setUser(found);
-      return { ok: true };
-    },
-    [],
-  );
+  const login: AuthValue["login"] = useCallback((identifier, password) => {
+    const id = identifier.trim().toLowerCase();
+    const found = getUsers().find(
+      (u) => u.username.toLowerCase() === id || (u.email ?? "").toLowerCase() === id,
+    );
+    if (!found || found.password !== password) {
+      return { ok: false, error: "بيانات الدخول غير صحيحة" };
+    }
+    if (!found.active) return { ok: false, error: "الحساب موقوف، راجع مدير النظام" };
+    setSessionUserId(found.id);
+    logAudit(found, "تسجيل دخول", found.username);
+    setUser(found);
+    return { ok: true };
+  }, []);
 
   const logout = useCallback(() => {
     if (user) logAudit(user, "تسجيل خروج", user.username);
@@ -59,10 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, [user]);
 
-  const can = useCallback(
-    (p: Permission) => (user ? ROLE_PERMISSIONS[user.role].includes(p) : false),
-    [user],
-  );
+  const can = useCallback((p: Permission) => (user ? permissionsOf(user).includes(p) : false), [user]);
 
   const value = useMemo(() => ({ user, ready, login, logout, can }), [user, ready, login, logout, can]);
 
