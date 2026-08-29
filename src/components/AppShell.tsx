@@ -5,15 +5,18 @@ import { ROLE_LABEL, type Permission } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ClipboardList, LayoutDashboard, LogOut, ShieldCheck, Users } from "lucide-react";
+import { ClipboardList, IdCard, LayoutDashboard, LogOut, ShieldCheck, Ticket, Users } from "lucide-react";
 import { LoginScreen } from "@/components/LoginScreen";
 
 const NAV: { to: string; label: string; icon: typeof Users; perm?: Permission }[] = [
   { to: "/", label: "الرئيسية", icon: LayoutDashboard },
-  { to: "/log", label: "السجل اليومي", icon: ClipboardList },
+  { to: "/log", label: "السجل", icon: ClipboardList },
+  { to: "/persons", label: "الأشخاص", icon: IdCard, perm: "persons.manage" },
+  { to: "/permits", label: "التصاريح", icon: Ticket, perm: "permits.issue" },
   { to: "/users", label: "المستخدمون", icon: Users, perm: "users.manage" },
-  { to: "/audit", label: "سجل العمليات", icon: ShieldCheck, perm: "audit.view" },
+  { to: "/audit", label: "العمليات", icon: ShieldCheck, perm: "audit.view" },
 ];
+
 
 export function AppShell({ children, requires }: { children: ReactNode; requires?: Permission }) {
   const { user, ready, logout, can } = useAuth();

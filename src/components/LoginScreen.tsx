@@ -33,8 +33,9 @@ export function LoginScreen() {
         <CardContent>
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">اسم المستخدم</Label>
+              <Label htmlFor="username">اسم المستخدم أو البريد الإلكتروني</Label>
               <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">كلمة المرور</Label>
