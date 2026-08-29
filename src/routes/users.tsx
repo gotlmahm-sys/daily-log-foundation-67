@@ -3,8 +3,8 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useStoreData } from "@/hooks/use-store-data";
-import { getUsers, logAudit, resetDemoData, setUsers, uid } from "@/lib/store";
-import { ROLE_LABEL, type Role, type User } from "@/lib/types";
+import { OWNER_ID, getUsers, logAudit, resetDemoData, setUsers, uid } from "@/lib/store";
+import { ASSIGNABLE_ROLES, GRANTABLE_PERMISSIONS, PERMISSION_LABEL, ROLE_LABEL, type Permission, type Role, type User } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,7 +111,7 @@ function UsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
+                  {ASSIGNABLE_ROLES.map((r) => (
                     <SelectItem key={r} value={r}>
                       {ROLE_LABEL[r]}
                     </SelectItem>
@@ -147,13 +147,13 @@ function UsersPage() {
                   onValueChange={(v) =>
                     patch(u.id, { role: v as Role }, "تغيير دور مستخدم", `الدور الجديد: ${ROLE_LABEL[v as Role]}`)
                   }
-                  disabled={u.id === user.id}
+                  disabled={u.id === user.id || u.id === OWNER_ID}
                 >
                   <SelectTrigger className="w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
+                    {(u.id === OWNER_ID ? (["owner"] as Role[]) : ASSIGNABLE_ROLES).map((r) => (
                       <SelectItem key={r} value={r}>
                         {ROLE_LABEL[r]}
                       </SelectItem>
@@ -163,12 +163,42 @@ function UsersPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={u.id === user.id}
+                  disabled={u.id === user.id || u.id === OWNER_ID}
                   onClick={() => patch(u.id, { active: !u.active }, u.active ? "إيقاف مستخدم" : "تفعيل مستخدم")}
                 >
                   {u.active ? "إيقاف" : "تفعيل"}
                 </Button>
               </div>
+              {u.id !== OWNER_ID && (
+                <div className="w-full space-y-1 border-t border-border pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground">صلاحيات إضافية</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {GRANTABLE_PERMISSIONS.map((p) => {
+                      const on = (u.extraPermissions ?? []).includes(p);
+                      return (
+                        <Button
+                          key={p}
+                          size="sm"
+                          variant={on ? "default" : "outline"}
+                          onClick={() => {
+                            const next = on
+                              ? (u.extraPermissions ?? []).filter((x) => x !== p)
+                              : ([...(u.extraPermissions ?? []), p] as Permission[]);
+                            patch(
+                              u.id,
+                              { extraPermissions: next },
+                              on ? "سحب صلاحية" : "منح صلاحية",
+                              PERMISSION_LABEL[p],
+                            );
+                          }}
+                        >
+                          {PERMISSION_LABEL[p]}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
