@@ -94,14 +94,14 @@ function PermitsPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selected.length === 0) return toast.error("اختر شخصًا واحدًا على الأقل");
-    if (!form.exitTypeId) return toast.error("اختر نوع الخروج");
+    if (selected.length === 0) { toast.error("اختر شخصًا واحدًا على الأقل"); return; }
+    if (!form.exitTypeId) { toast.error("اختر نوع الخروج"); return; }
 
     if (editingId) {
-      if (!can("permits.edit")) return toast.error("لا تملك صلاحية تعديل التصاريح");
+      if (!can("permits.edit")) { toast.error("لا تملك صلاحية تعديل التصاريح"); return; }
       const list = getPermits();
       const before = list.find((p) => p.id === editingId);
-      if (!before || before.status !== "ready") return toast.error("لا يمكن تعديل هذا التصريح");
+      if (!before || before.status !== "ready") { toast.error("لا يمكن تعديل هذا التصريح"); return; }
       setPermits(
         list.map((p) =>
           p.id === editingId
@@ -147,7 +147,7 @@ function PermitsPage() {
   };
 
   const cancel = (permit: Permit) => {
-    if (!can("permits.cancel")) return toast.error("لا تملك صلاحية إلغاء التصاريح");
+    if (!can("permits.cancel")) { toast.error("لا تملك صلاحية إلغاء التصاريح"); return; }
     setPermits(
       getPermits().map((p) =>
         p.id === permit.id && p.status === "ready"

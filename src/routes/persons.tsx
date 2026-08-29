@@ -65,7 +65,7 @@ function PersonsPage() {
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.fullName.trim()) return toast.error("اسم الشخص مطلوب");
+    if (!form.fullName.trim()) { toast.error("اسم الشخص مطلوب"); return; }
     const sNum = form.sNumber ? Number(form.sNumber) : null;
     const shortCode = form.shortCode.trim() || generateShortCode(form.nationalId, strategy);
     if (editing) {
