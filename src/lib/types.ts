@@ -307,6 +307,11 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "permits.edit",
     "permits.cancel",
     "permits.ready.view",
+    "records.view",
+    "records.create",
+    "records.manual",
+    "templates.use",
+    "templates.manage",
   ],
   admin: [
     "log.view.own",
@@ -317,9 +322,26 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "log.sign",
     "users.manage",
     "audit.view",
+    "records.view",
+    "records.create",
+    "records.manual",
+    "templates.use",
+    "templates.manage",
   ],
-  supervisor: ["log.view.own", "log.view.all", "log.create", "log.edit.own", "log.review", "log.sign"],
-  employee: ["log.view.own", "log.create", "log.edit.own", "log.sign"],
+  supervisor: [
+    "log.view.own",
+    "log.view.all",
+    "log.create",
+    "log.edit.own",
+    "log.review",
+    "log.sign",
+    "records.view",
+    "records.create",
+    "records.manual",
+    "templates.use",
+  ],
+  employee: ["log.view.own", "log.create", "log.edit.own", "log.sign", "records.view", "records.create", "templates.use"],
+
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
