@@ -139,6 +139,101 @@ export interface Message {
   read: boolean;
 }
 
+/* ---------- Daily register (Prompt 3) ---------- */
+
+/** dynamic statement / movement type — extendable, never hard-coded in UI */
+export interface StatementType {
+  id: string;
+  name: string;
+  /** optional grouping: movement types are a subset of statement types */
+  isMovement: boolean;
+  active: boolean;
+}
+
+export interface Topic {
+  id: string;
+  name: string;
+  /** words that indicate this topic when a statement starts with them */
+  keywords: string[];
+  active: boolean;
+}
+
+export type TemplateSource = "template" | "manual";
+
+export const TEMPLATE_VARIABLES = ["{PERSON}", "{PERSONS}", "{S_NUMBER}"] as const;
+export type TemplateVariable = string;
+
+export interface StatementTemplate {
+  id: string;
+  name: string;
+  /** statement pattern, may contain variables like {PERSON} */
+  pattern: string;
+  topicId: string | null;
+  statementTypeId: string | null;
+  movementTypeId: string | null;
+  variables: TemplateVariable[];
+  usageCount: number;
+  lastUsedAt?: string;
+  active: boolean;
+  source: TemplateSource;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface DailyRegister {
+  id: string;
+  businessDate: string;
+  status: "open" | "closed";
+  openedAt: string;
+  openedBy: string;
+  openedByName: string;
+  closedAt?: string;
+  closedBy?: string;
+  closedByName?: string;
+}
+
+/** structured relation: daily record -> person */
+export interface RecordPerson {
+  personId: string;
+  /** historical snapshot for display only — identity stays personId */
+  fullNameAtCreation: string;
+  sNumberAtCreation: number | null;
+  shortCodeAtCreation: string;
+}
+
+export type RecordEntryMode = "template" | "manual" | "system";
+
+export interface DailyRecord {
+  id: string;
+  registerId: string;
+  businessDate: string;
+  sequence: number;
+  /** actual operation time, independent of business date */
+  createdAt: string;
+  /** final rendered statement text, frozen at creation */
+  statementText: string;
+  topicId: string | null;
+  topicName: string;
+  statementTypeId: string | null;
+  statementTypeName: string;
+  movementTypeId: string | null;
+  templateId: string | null;
+  entryMode: RecordEntryMode;
+  /** structured variable values used at render time */
+  variableValues: Record<string, string>;
+  persons: RecordPerson[];
+  createdBy: string;
+  createdByName: string;
+  /** historical signature snapshot of the creating user */
+  signatureName: string;
+  /** future link (Prompt 4) — never inferred from text */
+  permitId?: string | null;
+  /** idempotency guard against duplicate submissions */
+  requestId: string;
+}
+
 /* ---------- Permissions ---------- */
 
 export type Permission =
@@ -154,7 +249,12 @@ export type Permission =
   | "permits.issue"
   | "permits.edit"
   | "permits.cancel"
-  | "permits.ready.view";
+  | "permits.ready.view"
+  | "records.view"
+  | "records.create"
+  | "records.manual"
+  | "templates.use"
+  | "templates.manage";
 
 export const PERMISSION_LABEL: Record<Permission, string> = {
   "log.view.own": "عرض قيوده",
@@ -170,6 +270,11 @@ export const PERMISSION_LABEL: Record<Permission, string> = {
   "permits.edit": "تعديل التصاريح",
   "permits.cancel": "إلغاء التصاريح",
   "permits.ready.view": "عرض التصاريح الجاهزة",
+  "records.view": "مشاهدة السجل اليومي",
+  "records.create": "إضافة بيان",
+  "records.manual": "الكتابة اليدوية",
+  "templates.use": "استخدام القوالب",
+  "templates.manage": "إضافة/حفظ قالب",
 };
 
 /** permissions the owner may grant individually to any user */
@@ -179,7 +284,13 @@ export const GRANTABLE_PERMISSIONS: Permission[] = [
   "permits.edit",
   "permits.cancel",
   "permits.ready.view",
+  "records.view",
+  "records.create",
+  "records.manual",
+  "templates.use",
+  "templates.manage",
 ];
+
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   owner: [
@@ -196,6 +307,11 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "permits.edit",
     "permits.cancel",
     "permits.ready.view",
+    "records.view",
+    "records.create",
+    "records.manual",
+    "templates.use",
+    "templates.manage",
   ],
   admin: [
     "log.view.own",
@@ -206,9 +322,26 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "log.sign",
     "users.manage",
     "audit.view",
+    "records.view",
+    "records.create",
+    "records.manual",
+    "templates.use",
+    "templates.manage",
   ],
-  supervisor: ["log.view.own", "log.view.all", "log.create", "log.edit.own", "log.review", "log.sign"],
-  employee: ["log.view.own", "log.create", "log.edit.own", "log.sign"],
+  supervisor: [
+    "log.view.own",
+    "log.view.all",
+    "log.create",
+    "log.edit.own",
+    "log.review",
+    "log.sign",
+    "records.view",
+    "records.create",
+    "records.manual",
+    "templates.use",
+  ],
+  employee: ["log.view.own", "log.create", "log.edit.own", "log.sign", "records.view", "records.create", "templates.use"],
+
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
