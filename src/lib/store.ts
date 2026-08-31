@@ -317,7 +317,10 @@ export const setSessionUserId = (id: string | null) => write(KEYS.session, id);
 
 export function resetDemoData() {
   if (!isBrowser()) return;
-  Object.values(KEYS).forEach((k) => window.localStorage.removeItem(k));
+  Object.keys(window.localStorage)
+    .filter((k) => k.startsWith("sijil."))
+    .forEach((k) => window.localStorage.removeItem(k));
+
   ensureSeed();
 }
 
