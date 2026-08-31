@@ -226,8 +226,13 @@ export const setEntries = (e: LogEntry[]) => write(KEYS.entries, e);
 
 export const getAudit = () => read<AuditEvent[]>(KEYS.audit, []);
 
-export const getSettings = () => read<Settings>(KEYS.settings, DEFAULT_SETTINGS);
+export const getSettings = (): Settings => ({ ...DEFAULT_SETTINGS, ...read<Partial<Settings>>(KEYS.settings, {}) });
 export const setSettings = (s: Settings) => write(KEYS.settings, s);
+
+/** generic storage access for feature modules built on top of this store */
+export const readKey = <T,>(key: string, fallback: T): T => read<T>(key, fallback);
+export const writeKey = <T,>(key: string, value: T) => write<T>(key, value);
+
 
 /* ---------- persons ---------- */
 
