@@ -144,11 +144,50 @@ const SEED_EXIT_TYPES: ExitType[] = [
   },
 ];
 
-export interface Settings {
-  shortCodeStrategy: ShortCodeStrategy;
+export interface DayStatementDefault {
+  time: string;
+  text: string;
+  topic: string;
+  statementTypeName: string;
 }
 
-const DEFAULT_SETTINGS: Settings = { shortCodeStrategy: "first2last2" };
+export interface Settings {
+  shortCodeStrategy: ShortCodeStrategy;
+  /** IANA timezone used to derive business_date consistently */
+  timeZone: string;
+  /** day boundaries (local business time) */
+  dayStart: string;
+  dayEnd: string;
+  exitAllowedFrom: string;
+  defaultOutingEnd: string;
+  openingStatement: DayStatementDefault;
+  closingStatement: DayStatementDefault;
+  /** persisted template sort preference */
+  templateSort: "usage" | "recent";
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  shortCodeStrategy: "first2last2",
+  timeZone: "Africa/Cairo",
+  dayStart: "00:05",
+  dayEnd: "23:55",
+  exitAllowedFrom: "04:00",
+  defaultOutingEnd: "22:00",
+  openingStatement: {
+    time: "00:05",
+    text: "افتتاح عمل اليوم على بركة الله",
+    topic: "افتتاح",
+    statementTypeName: "افتتاح",
+  },
+  closingStatement: {
+    time: "23:55",
+    text: "نهاية عمل اليوم",
+    topic: "نهاية",
+    statementTypeName: "نهاية",
+  },
+  templateSort: "usage",
+};
+
 
 export function ensureSeed() {
   if (!isBrowser()) return;
