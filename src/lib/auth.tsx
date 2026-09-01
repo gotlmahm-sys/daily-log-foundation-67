@@ -8,6 +8,8 @@ import {
   setSessionUserId,
   subscribe,
 } from "./store";
+import { ensureDailySeed } from "./daily";
+
 
 interface AuthValue {
   user: User | null;
@@ -35,10 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     ensureSeed();
+    ensureDailySeed();
     sync();
     setReady(true);
     return subscribe(sync);
   }, [sync]);
+
 
   const login: AuthValue["login"] = useCallback((identifier, password) => {
     const id = identifier.trim().toLowerCase();

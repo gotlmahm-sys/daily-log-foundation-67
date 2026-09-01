@@ -5,12 +5,14 @@ import { ROLE_LABEL, type Permission } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ClipboardList, IdCard, LayoutDashboard, LogOut, ShieldCheck, Ticket, Users } from "lucide-react";
+import { ClipboardList, IdCard, LayoutDashboard, LogOut, NotebookPen, ShieldCheck, Ticket, Users } from "lucide-react";
 import { LoginScreen } from "@/components/LoginScreen";
 
 const NAV: { to: string; label: string; icon: typeof Users; perm?: Permission }[] = [
   { to: "/", label: "الرئيسية", icon: LayoutDashboard },
+  { to: "/register", label: "السجل اليومي", icon: NotebookPen, perm: "records.view" },
   { to: "/log", label: "السجل", icon: ClipboardList },
+
   { to: "/persons", label: "الأشخاص", icon: IdCard, perm: "persons.manage" },
   { to: "/permits", label: "التصاريح", icon: Ticket, perm: "permits.issue" },
   { to: "/users", label: "المستخدمون", icon: Users, perm: "users.manage" },
