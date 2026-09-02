@@ -1,6 +1,8 @@
-import { getSettings, logAudit, readKey, uid, writeKey } from "./store";
+import { getSessionUserId, getSettings, getUsers, logAudit, readKey, uid, writeKey } from "./store";
+import { ROLE_PERMISSIONS } from "./types";
 import type {
   DailyRecord,
+  Permission,
   DailyRegister,
   Person,
   RecordEntryMode,
@@ -427,6 +429,10 @@ export function saveTemplate(
     source: StatementTemplate["source"];
   },
 ): { ok: boolean; error?: string; template?: StatementTemplate } {
+  const stored = actor(user);
+  if (!stored) return { ok: false, error: "جلسة غير صالحة" };
+  if (!userCan(stored, "templates.manage")) return { ok: false, error: "لا تملك صلاحية حفظ القوالب" };
+  user = stored;
   const pattern = data.pattern.trim();
   if (!data.name.trim() || !pattern) return { ok: false, error: "اسم القالب وصيغة البيان مطلوبان" };
   const tpl: StatementTemplate = {
