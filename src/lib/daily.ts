@@ -313,15 +313,42 @@ export interface CreateRecordResult {
 /** in-tab guard so rapid double clicks cannot interleave a read-modify-write */
 let writeLock = false;
 
+/** data-layer permission check: never trust the UI having hidden a button */
+function userCan(user: User, p: Permission): boolean {
+  return new Set([...ROLE_PERMISSIONS[user.role], ...(user.extraPermissions ?? [])]).has(p);
+}
+
+/**
+ * Resolves the authoritative actor from the store: identity, name and signature
+ * always come from the persisted user record, never from the caller's object.
+ */
+function actor(user: User): User | null {
+  const stored = getUsers().find((u) => u.id === user.id);
+  if (!stored || !stored.active) return null;
+  const sessionId = getSessionUserId();
+  if (sessionId && sessionId !== stored.id) return null;
+  return stored;
+}
+
 /**
  * Creates a daily record. Sequence is assigned by the store (never by the UI),
  * restarts at 1 for each business_date, and is protected against duplicates by
  * a request-id guard plus a uniqueness check on (business_date, sequence).
  */
-export function createDailyRecord(user: User, input: CreateRecordInput): CreateRecordResult {
+export function createDailyRecord(caller: User, input: CreateRecordInput): CreateRecordResult {
   if (writeLock) return { ok: false, error: "طلب قيد التنفيذ، حاول مجددًا" };
   writeLock = true;
   try {
+    const user = actor(caller);
+    if (!user) return { ok: false, error: "جلسة غير صالحة" };
+    if (!userCan(user, "records.create")) return { ok: false, error: "لا تملك صلاحية إضافة بيان" };
+    if (input.entryMode === "manual" && !userCan(user, "records.manual")) {
+      return { ok: false, error: "لا تملك صلاحية الكتابة اليدوية" };
+    }
+    if (input.entryMode === "template" && !userCan(user, "templates.use")) {
+      return { ok: false, error: "لا تملك صلاحية استخدام القوالب" };
+    }
+
     const text = input.statementText.trim();
     if (!text) return { ok: false, error: "نص البيان مطلوب" };
 
@@ -329,7 +356,8 @@ export function createDailyRecord(user: User, input: CreateRecordInput): CreateR
     const duplicate = all.find((r) => r.requestId === input.requestId);
     if (duplicate) return { ok: true, record: duplicate };
 
-    const at = input.at ?? new Date();
+    // creation time is taken from the system clock, never from user input
+    const at = input.entryMode === "system" && input.at ? input.at : new Date();
     const businessDate = businessDateOf(at);
     const register = openRegister(user, businessDate);
     if (register.status === "closed") return { ok: false, error: "اليوم مغلق" };
@@ -337,6 +365,7 @@ export function createDailyRecord(user: User, input: CreateRecordInput): CreateR
     const sameDay = all.filter((r) => r.businessDate === businessDate);
     const sequence = sameDay.reduce((m, r) => Math.max(m, r.sequence), 0) + 1;
     if (sameDay.some((r) => r.sequence === sequence)) return { ok: false, error: "تعارض في التسلسل، أعد المحاولة" };
+
 
     const topics = getTopics();
     const types = getStatementTypes();
