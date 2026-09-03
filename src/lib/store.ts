@@ -18,6 +18,7 @@ const KEYS = {
   permits: "sijil.permits",
   exitTypes: "sijil.exitTypes",
   messages: "sijil.messages",
+  movements: "sijil.movements",
   settings: "sijil.settings",
 } as const;
 
@@ -164,6 +165,8 @@ export interface Settings {
   closingStatement: DayStatementDefault;
   /** persisted template sort preference */
   templateSort: "usage" | "recent";
+  /** minutes after the expected return time before a movement becomes absence */
+  absenceAfterMinutes: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -186,6 +189,7 @@ export const DEFAULT_SETTINGS: Settings = {
     statementTypeName: "نهاية",
   },
   templateSort: "usage",
+  absenceAfterMinutes: 120,
 };
 
 

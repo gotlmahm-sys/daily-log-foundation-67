@@ -127,6 +127,66 @@ export interface Permit {
   updatedAt?: string;
 }
 
+/* ---------- Movements (Prompt 4) ---------- */
+
+export type MovementStatus = "out" | "late" | "absent" | "returned";
+
+export const MOVEMENT_STATUS_LABEL: Record<MovementStatus, string> = {
+  out: "خارج",
+  late: "متأخر",
+  absent: "غياب",
+  returned: "عاد",
+};
+
+/** structured relation: movement -> person (never names as identity) */
+export interface MovementPerson {
+  personId: string;
+  fullNameAtStart: string;
+  sNumberAtStart: number | null;
+  shortCodeAtStart: string;
+}
+
+export interface MovementReturn {
+  at: string;
+  byUserId: string;
+  byUserName: string;
+  /** historical signature snapshot */
+  signatureName: string;
+  expectedReturnAt: string;
+  /** minutes actually spent outside, computed from data only */
+  durationMinutes: number;
+  onTime: boolean;
+  late: boolean;
+  lateMinutes: number;
+  fromAbsence: boolean;
+  absenceMinutes: number;
+}
+
+export interface Movement {
+  id: string;
+  permitId: string;
+  exitTypeId: string;
+  exitTypeName: string;
+  persons: MovementPerson[];
+  /** actual start (قيام) time */
+  startedAt: string;
+  businessDate: string;
+  expectedReturnAt: string;
+  status: MovementStatus;
+  startedBy: string;
+  startedByName: string;
+  signatureName: string;
+  createdAt: string;
+  startRecordId: string | null;
+  returnRecordId: string | null;
+  return?: MovementReturn;
+  /** idempotency guard */
+  requestId: string;
+  updatedAt?: string;
+}
+
+
+
 /* ---------- Messages (structure only) ---------- */
 
 export interface Message {
@@ -228,8 +288,9 @@ export interface DailyRecord {
   createdByName: string;
   /** historical signature snapshot of the creating user */
   signatureName: string;
-  /** future link (Prompt 4) — never inferred from text */
+  /** structured links (Prompt 4) — never inferred from text */
   permitId?: string | null;
+  movementId?: string | null;
   /** idempotency guard against duplicate submissions */
   requestId: string;
 }
@@ -254,7 +315,10 @@ export type Permission =
   | "records.create"
   | "records.manual"
   | "templates.use"
-  | "templates.manage";
+  | "templates.manage"
+  | "movements.view"
+  | "movements.start"
+  | "movements.return";
 
 export const PERMISSION_LABEL: Record<Permission, string> = {
   "log.view.own": "عرض قيوده",
@@ -275,6 +339,9 @@ export const PERMISSION_LABEL: Record<Permission, string> = {
   "records.manual": "الكتابة اليدوية",
   "templates.use": "استخدام القوالب",
   "templates.manage": "إضافة/حفظ قالب",
+  "movements.view": "متابعة الحركة والخارجين",
+  "movements.start": "تسجيل القيام",
+  "movements.return": "تسجيل العودة",
 };
 
 /** permissions the owner may grant individually to any user */
@@ -289,6 +356,9 @@ export const GRANTABLE_PERMISSIONS: Permission[] = [
   "records.manual",
   "templates.use",
   "templates.manage",
+  "movements.view",
+  "movements.start",
+  "movements.return",
 ];
 
 
@@ -312,6 +382,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "records.manual",
     "templates.use",
     "templates.manage",
+    "movements.view",
+    "movements.start",
+    "movements.return",
   ],
   admin: [
     "log.view.own",
@@ -327,6 +400,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "records.manual",
     "templates.use",
     "templates.manage",
+    "movements.view",
+    "movements.start",
+    "movements.return",
   ],
   supervisor: [
     "log.view.own",
@@ -339,8 +415,11 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "records.create",
     "records.manual",
     "templates.use",
+    "movements.view",
+    "movements.start",
+    "movements.return",
   ],
-  employee: ["log.view.own", "log.create", "log.edit.own", "log.sign", "records.view", "records.create", "templates.use"],
+  employee: ["log.view.own", "log.create", "log.edit.own", "log.sign", "records.view", "records.create", "templates.use", "movements.view"],
 
 };
 
