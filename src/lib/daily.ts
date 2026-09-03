@@ -298,6 +298,8 @@ export interface CreateRecordInput {
   statementTypeId: string | null;
   movementTypeId?: string | null;
   templateId?: string | null;
+  permitId?: string | null;
+  movementId?: string | null;
   entryMode: RecordEntryMode;
   persons: Person[];
   variableValues?: Record<string, string>;
@@ -397,7 +399,8 @@ export function createDailyRecord(caller: User, input: CreateRecordInput): Creat
       createdBy: user.id,
       createdByName: user.fullName,
       signatureName: user.signatureName || user.fullName,
-      permitId: null,
+      permitId: input.permitId ?? null,
+      movementId: input.movementId ?? null,
       requestId: input.requestId,
     };
 

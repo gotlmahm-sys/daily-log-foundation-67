@@ -288,8 +288,9 @@ export interface DailyRecord {
   createdByName: string;
   /** historical signature snapshot of the creating user */
   signatureName: string;
-  /** future link (Prompt 4) — never inferred from text */
+  /** structured links (Prompt 4) — never inferred from text */
   permitId?: string | null;
+  movementId?: string | null;
   /** idempotency guard against duplicate submissions */
   requestId: string;
 }
