@@ -314,7 +314,10 @@ export type Permission =
   | "records.create"
   | "records.manual"
   | "templates.use"
-  | "templates.manage";
+  | "templates.manage"
+  | "movements.view"
+  | "movements.start"
+  | "movements.return";
 
 export const PERMISSION_LABEL: Record<Permission, string> = {
   "log.view.own": "عرض قيوده",
@@ -335,6 +338,9 @@ export const PERMISSION_LABEL: Record<Permission, string> = {
   "records.manual": "الكتابة اليدوية",
   "templates.use": "استخدام القوالب",
   "templates.manage": "إضافة/حفظ قالب",
+  "movements.view": "متابعة الحركة والخارجين",
+  "movements.start": "تسجيل القيام",
+  "movements.return": "تسجيل العودة",
 };
 
 /** permissions the owner may grant individually to any user */
@@ -349,6 +355,9 @@ export const GRANTABLE_PERMISSIONS: Permission[] = [
   "records.manual",
   "templates.use",
   "templates.manage",
+  "movements.view",
+  "movements.start",
+  "movements.return",
 ];
 
 
@@ -372,6 +381,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "records.manual",
     "templates.use",
     "templates.manage",
+    "movements.view",
+    "movements.start",
+    "movements.return",
   ],
   admin: [
     "log.view.own",
@@ -387,6 +399,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "records.manual",
     "templates.use",
     "templates.manage",
+    "movements.view",
+    "movements.start",
+    "movements.return",
   ],
   supervisor: [
     "log.view.own",
@@ -399,8 +414,11 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "records.create",
     "records.manual",
     "templates.use",
+    "movements.view",
+    "movements.start",
+    "movements.return",
   ],
-  employee: ["log.view.own", "log.create", "log.edit.own", "log.sign", "records.view", "records.create", "templates.use"],
+  employee: ["log.view.own", "log.create", "log.edit.own", "log.sign", "records.view", "records.create", "templates.use", "movements.view"],
 
 };
 
