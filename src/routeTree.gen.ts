@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as LogRouteImport } from './routes/log'
+import { Route as MovementsRouteImport } from './routes/movements'
 import { Route as PermitsRouteImport } from './routes/permits'
 import { Route as PersonsRouteImport } from './routes/persons'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -30,6 +31,11 @@ const AuditRoute = AuditRouteImport.update({
 const LogRoute = LogRouteImport.update({
   id: '/log',
   path: '/log',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MovementsRoute = MovementsRouteImport.update({
+  id: '/movements',
+  path: '/movements',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PermitsRoute = PermitsRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit': typeof AuditRoute
   '/log': typeof LogRoute
+  '/movements': typeof MovementsRoute
   '/permits': typeof PermitsRoute
   '/persons': typeof PersonsRoute
   '/register': typeof RegisterRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit': typeof AuditRoute
   '/log': typeof LogRoute
+  '/movements': typeof MovementsRoute
   '/permits': typeof PermitsRoute
   '/persons': typeof PersonsRoute
   '/register': typeof RegisterRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/audit': typeof AuditRoute
   '/log': typeof LogRoute
+  '/movements': typeof MovementsRoute
   '/permits': typeof PermitsRoute
   '/persons': typeof PersonsRoute
   '/register': typeof RegisterRoute
@@ -84,14 +93,30 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/audit' | '/log' | '/permits' | '/persons' | '/register' | '/users'
+    | '/'
+    | '/audit'
+    | '/log'
+    | '/movements'
+    | '/permits'
+    | '/persons'
+    | '/register'
+    | '/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/audit' | '/log' | '/permits' | '/persons' | '/register' | '/users'
+  to:
+    | '/'
+    | '/audit'
+    | '/log'
+    | '/movements'
+    | '/permits'
+    | '/persons'
+    | '/register'
+    | '/users'
   id:
     | '__root__'
     | '/'
     | '/audit'
     | '/log'
+    | '/movements'
     | '/permits'
     | '/persons'
     | '/register'
@@ -102,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditRoute: typeof AuditRoute
   LogRoute: typeof LogRoute
+  MovementsRoute: typeof MovementsRoute
   PermitsRoute: typeof PermitsRoute
   PersonsRoute: typeof PersonsRoute
   RegisterRoute: typeof RegisterRoute
@@ -129,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/log'
       fullPath: '/log'
       preLoaderRoute: typeof LogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/movements': {
+      id: '/movements'
+      path: '/movements'
+      fullPath: '/movements'
+      preLoaderRoute: typeof MovementsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/permits': {
@@ -166,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditRoute: AuditRoute,
   LogRoute: LogRoute,
+  MovementsRoute: MovementsRoute,
   PermitsRoute: PermitsRoute,
   PersonsRoute: PersonsRoute,
   RegisterRoute: RegisterRoute,
