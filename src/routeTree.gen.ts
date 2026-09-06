@@ -16,6 +16,7 @@ import { Route as MovementsRouteImport } from './routes/movements'
 import { Route as PermitsRouteImport } from './routes/permits'
 import { Route as PersonsRouteImport } from './routes/persons'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as UsersRouteImport } from './routes/users'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,11 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/permits': typeof PermitsRoute
   '/persons': typeof PersonsRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/permits': typeof PermitsRoute
   '/persons': typeof PersonsRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/permits': typeof PermitsRoute
   '/persons': typeof PersonsRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/permits'
     | '/persons'
     | '/register'
+    | '/settings'
     | '/users'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/permits'
     | '/persons'
     | '/register'
+    | '/settings'
     | '/users'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/permits'
     | '/persons'
     | '/register'
+    | '/settings'
     | '/users'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   PermitsRoute: typeof PermitsRoute
   PersonsRoute: typeof PersonsRoute
   RegisterRoute: typeof RegisterRoute
+  SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
 }
 
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/users': {
       id: '/users'
       path: '/users'
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   PermitsRoute: PermitsRoute,
   PersonsRoute: PersonsRoute,
   RegisterRoute: RegisterRoute,
+  SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
