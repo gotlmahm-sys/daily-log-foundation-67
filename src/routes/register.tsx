@@ -30,7 +30,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { Minus, Plus, CalendarDays, Clock, FileText, Lock, Sparkles } from "lucide-react";
+import { Minus, Plus, CalendarDays, Clock, FileText, Lock, Printer, Sheet, Sparkles } from "lucide-react";
+import { exportDailyRecords, printDailyRegister } from "@/lib/export";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -96,7 +97,7 @@ function RegisterView() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-4">
+      <Card className="p-4 no-print">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <p className="text-sm font-semibold">{user.fullName}</p>
@@ -146,9 +147,60 @@ function RegisterView() {
                 </Button>
               </>
             )}
+            {can("export.excel") && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={records.length === 0}
+                onClick={() => {
+                  exportDailyRecords(user, date, records);
+                  toast.success("تم تصدير السجل اليومي");
+                }}
+              >
+                <Sheet className="size-4" /> تصدير Excel
+              </Button>
+            )}
+            {can("print.view") && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={records.length === 0}
+                onClick={() => printDailyRegister(user, date, records.length)}
+              >
+                <Printer className="size-4" /> طباعة
+              </Button>
+            )}
           </div>
         </div>
       </Card>
+
+      <div className="print-only print-area">
+        <h2 style={{ textAlign: "center", marginBottom: 8 }}>السجل اليومي — {date}</h2>
+        <table className="print-table">
+          <thead>
+            <tr>
+              <th>التسلسل</th>
+              <th>التاريخ/الوقت</th>
+              <th>البيان</th>
+              <th>الموضوع</th>
+              <th>التوقيع</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...records]
+              .sort((a, b) => a.sequence - b.sequence)
+              .map((r) => (
+                <tr key={r.id}>
+                  <td>{r.sequence}</td>
+                  <td>{`${date} ${formatBusinessTime(r.createdAt)}`}</td>
+                  <td>{r.statementText}</td>
+                  <td>{r.topicName || "—"}</td>
+                  <td>{r.signatureName || r.createdByName}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
 
       {records.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
