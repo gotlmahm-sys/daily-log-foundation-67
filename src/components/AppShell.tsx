@@ -5,7 +5,7 @@ import { ROLE_LABEL, type Permission } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ClipboardList, DoorOpen, IdCard, LayoutDashboard, LogOut, NotebookPen, ShieldCheck, Ticket, Users } from "lucide-react";
+import { ClipboardList, DoorOpen, IdCard, LayoutDashboard, LogOut, NotebookPen, Settings as SettingsIcon, ShieldCheck, Ticket, Users } from "lucide-react";
 import { LoginScreen } from "@/components/LoginScreen";
 
 const NAV: { to: string; label: string; icon: typeof Users; perm?: Permission }[] = [
@@ -18,6 +18,7 @@ const NAV: { to: string; label: string; icon: typeof Users; perm?: Permission }[
   { to: "/permits", label: "التصاريح", icon: Ticket, perm: "permits.issue" },
   { to: "/users", label: "المستخدمون", icon: Users, perm: "users.manage" },
   { to: "/audit", label: "العمليات", icon: ShieldCheck, perm: "audit.view" },
+  { to: "/settings", label: "الإعدادات", icon: SettingsIcon, perm: "settings.manage" },
 ];
 
 
