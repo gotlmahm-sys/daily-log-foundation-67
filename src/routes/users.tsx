@@ -3,8 +3,17 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useStoreData } from "@/hooks/use-store-data";
-import { OWNER_ID, getUsers, logAudit, resetDemoData, setUsers, uid } from "@/lib/store";
-import { ASSIGNABLE_ROLES, GRANTABLE_PERMISSIONS, PERMISSION_LABEL, ROLE_LABEL, type Permission, type Role, type User } from "@/lib/types";
+import { OWNER_ID, resetDemoData } from "@/lib/store";
+import { createUser, updateUser } from "@/lib/admin";
+import {
+  ASSIGNABLE_ROLES,
+  GRANTABLE_PERMISSIONS,
+  PERMISSION_LABEL,
+  ROLE_LABEL,
+  type Permission,
+  type Role,
+  type User,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,50 +38,40 @@ export const Route = createFileRoute("/users")({
   ),
 });
 
+const emptyForm = {
+  fullName: "",
+  username: "",
+  password: "",
+  department: "التشغيل",
+  signatureName: "",
+  role: "employee" as Role,
+};
+
 function UsersPage() {
   const { user } = useAuth();
   const { users } = useStoreData();
-  const [form, setForm] = useState({
-    fullName: "",
-    username: "",
-    password: "",
-    department: "التشغيل",
-    role: "employee" as Role,
-  });
+  const [form, setForm] = useState(emptyForm);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [edit, setEdit] = useState({ fullName: "", signatureName: "", department: "", password: "" });
 
   if (!user) return null;
 
   const add = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.fullName.trim() || !form.username.trim() || form.password.length < 6) {
-      toast.error("الاسم واسم المستخدم مطلوبان، وكلمة المرور ٦ أحرف على الأقل");
+    const res = createUser(user, form);
+    if (!res.ok) {
+      toast.error(res.error ?? "تعذر إنشاء المستخدم");
       return;
     }
-    if (getUsers().some((u) => u.username.toLowerCase() === form.username.trim().toLowerCase())) {
-      toast.error("اسم المستخدم مستخدم بالفعل");
-      return;
-    }
-    const created: User = {
-      id: uid(),
-      username: form.username.trim(),
-      password: form.password,
-      fullName: form.fullName.trim(),
-      role: form.role,
-      department: form.department.trim() || "غير محدد",
-      active: true,
-      createdAt: new Date().toISOString(),
-    };
-    setUsers([...getUsers(), created]);
-    logAudit(user, "إضافة مستخدم", created.username, `الدور: ${ROLE_LABEL[created.role]}`);
-    setForm({ ...form, fullName: "", username: "", password: "" });
+    setForm({ ...form, fullName: "", username: "", password: "", signatureName: "" });
     toast.success("تمت إضافة المستخدم");
   };
 
-  const patch = (id: string, changes: Partial<User>, action: string, details?: string) => {
-    const list = getUsers().map((u) => (u.id === id ? { ...u, ...changes } : u));
-    setUsers(list);
-    const target = list.find((u) => u.id === id);
-    logAudit(user, action, target?.username ?? id, details);
+  const apply = (targetId: string, changes: Parameters<typeof updateUser>[2], action: string) => {
+    const res = updateUser(user, targetId, changes, action);
+    if (!res.ok) toast.error(res.error ?? "تعذر التعديل");
+    else toast.success("تم الحفظ");
+    return res.ok;
   };
 
   return (
@@ -105,6 +104,10 @@ function UsersPage() {
               <Input id="dept" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="sig">اسم التوقيع (اختياري)</Label>
+              <Input id="sig" value={form.signatureName} onChange={(e) => setForm({ ...form, signatureName: e.target.value })} />
+            </div>
+            <div className="space-y-2">
               <Label>الدور</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as Role })}>
                 <SelectTrigger>
@@ -129,79 +132,143 @@ function UsersPage() {
       </Card>
 
       <div className="space-y-3">
-        {users.map((u) => (
-          <Card key={u.id}>
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div className="min-w-0">
-                <p className="font-medium">
-                  {u.fullName} {u.id === user.id && <span className="text-xs text-muted-foreground">(أنت)</span>}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {u.username} · {u.department}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={u.active ? "secondary" : "destructive"}>{u.active ? "نشط" : "موقوف"}</Badge>
-                <Select
-                  value={u.role}
-                  onValueChange={(v) =>
-                    patch(u.id, { role: v as Role }, "تغيير دور مستخدم", `الدور الجديد: ${ROLE_LABEL[v as Role]}`)
-                  }
-                  disabled={u.id === user.id || u.id === OWNER_ID}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(u.id === OWNER_ID ? (["owner"] as Role[]) : ASSIGNABLE_ROLES).map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {ROLE_LABEL[r]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={u.id === user.id || u.id === OWNER_ID}
-                  onClick={() => patch(u.id, { active: !u.active }, u.active ? "إيقاف مستخدم" : "تفعيل مستخدم")}
-                >
-                  {u.active ? "إيقاف" : "تفعيل"}
-                </Button>
-              </div>
-              {u.id !== OWNER_ID && (
-                <div className="w-full space-y-1 border-t border-border pt-2">
-                  <p className="text-xs font-semibold text-muted-foreground">صلاحيات إضافية</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {GRANTABLE_PERMISSIONS.map((p) => {
-                      const on = (u.extraPermissions ?? []).includes(p);
-                      return (
-                        <Button
-                          key={p}
-                          size="sm"
-                          variant={on ? "default" : "outline"}
-                          onClick={() => {
-                            const next = on
-                              ? (u.extraPermissions ?? []).filter((x) => x !== p)
-                              : ([...(u.extraPermissions ?? []), p] as Permission[]);
-                            patch(
-                              u.id,
-                              { extraPermissions: next },
-                              on ? "سحب صلاحية" : "منح صلاحية",
-                              PERMISSION_LABEL[p],
-                            );
-                          }}
-                        >
-                          {PERMISSION_LABEL[p]}
-                        </Button>
-                      );
-                    })}
-                  </div>
+        {users.map((u: User) => {
+          const self = u.id === user.id;
+          const owner = u.id === OWNER_ID;
+          return (
+            <Card key={u.id}>
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {u.fullName} {self && <span className="text-xs text-muted-foreground">(أنت)</span>}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {u.username} · {u.department} · توقيع: {u.signatureName || u.fullName}
+                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={u.active ? "secondary" : "destructive"}>{u.active ? "نشط" : "موقوف"}</Badge>
+                  <Select
+                    value={u.role}
+                    onValueChange={(v) =>
+                      apply(u.id, { role: v as Role }, "تغيير دور مستخدم")
+                    }
+                    disabled={self || owner}
+                  >
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(owner ? (["owner"] as Role[]) : ASSIGNABLE_ROLES).map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {ROLE_LABEL[r]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={self || owner}
+                    onClick={() => apply(u.id, { active: !u.active }, u.active ? "إيقاف مستخدم" : "تفعيل مستخدم")}
+                  >
+                    {u.active ? "إيقاف" : "تفعيل"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditing(editing === u.id ? null : u.id);
+                      setEdit({
+                        fullName: u.fullName,
+                        signatureName: u.signatureName ?? u.fullName,
+                        department: u.department,
+                        password: "",
+                      });
+                    }}
+                  >
+                    تعديل البيانات
+                  </Button>
+                </div>
+
+                {editing === u.id && (
+                  <div className="grid w-full gap-3 border-t border-border pt-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>الاسم الكامل</Label>
+                      <Input value={edit.fullName} onChange={(e) => setEdit({ ...edit, fullName: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>اسم التوقيع</Label>
+                      <Input value={edit.signatureName} onChange={(e) => setEdit({ ...edit, signatureName: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>القسم</Label>
+                      <Input value={edit.department} onChange={(e) => setEdit({ ...edit, department: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>كلمة مرور جديدة (اختياري)</Label>
+                      <Input
+                        type="password"
+                        value={edit.password}
+                        onChange={(e) => setEdit({ ...edit, password: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const changes: Parameters<typeof updateUser>[2] = {
+                            fullName: edit.fullName.trim() || u.fullName,
+                            signatureName: edit.signatureName.trim() || u.fullName,
+                            department: edit.department.trim() || u.department,
+                          };
+                          if (edit.password) changes.password = edit.password;
+                          if (apply(u.id, changes, "تعديل بيانات مستخدم")) setEditing(null);
+                        }}
+                      >
+                        حفظ
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditing(null)}>
+                        إلغاء
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {!owner && !self && (
+                  <div className="w-full space-y-1 border-t border-border pt-2">
+                    <p className="text-xs font-semibold text-muted-foreground">صلاحيات إضافية</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {GRANTABLE_PERMISSIONS.map((p) => {
+                        const on = (u.extraPermissions ?? []).includes(p);
+                        return (
+                          <Button
+                            key={p}
+                            size="sm"
+                            variant={on ? "default" : "outline"}
+                            onClick={() => {
+                              const next = on
+                                ? (u.extraPermissions ?? []).filter((x) => x !== p)
+                                : ([...(u.extraPermissions ?? []), p] as Permission[]);
+                              apply(u.id, { extraPermissions: next }, on ? "سحب صلاحية" : "منح صلاحية");
+                            }}
+                          >
+                            {PERMISSION_LABEL[p]}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {self && (
+                  <p className="w-full border-t border-border pt-2 text-xs text-muted-foreground">
+                    لا يمكنك تعديل دورك أو صلاحياتك أو حالتك بنفسك.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <Button
