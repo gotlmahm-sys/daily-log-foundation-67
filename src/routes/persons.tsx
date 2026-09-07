@@ -60,6 +60,8 @@ function PersonsPage() {
   const [editing, setEditing] = useState<Person | null>(null);
   const [strategy, setStrategy] = useState<ShortCodeStrategy>(getSettings().shortCodeStrategy);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [profile, setProfile] = useState<Person | null>(null);
+
 
   const filtered = useMemo(() => {
     const term = q.trim();
