@@ -339,3 +339,74 @@ function PersonsPage() {
     </div>
   );
 }
+
+function PersonProfile({ person }: { person: Person }) {
+  const permits = getPermits().filter((p) => p.persons.some((x) => x.personId === person.id));
+  const movements = movementsOfPerson(person.id);
+  const returns = movements.filter((m) => m.return);
+  const records = getRecords().filter((r) => r.persons.some((x) => x.personId === person.id));
+
+  return (
+    <div className="w-full space-y-3 border-t border-border pt-3">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">التصاريح ({permits.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {permits.map((p) => (
+            <p key={p.id} className="text-xs text-muted-foreground">
+              {p.exitTime} → {p.expectedReturnDate} {p.expectedReturnTime} ·{" "}
+              <Badge variant="secondary">{PERMIT_STATUS_LABEL[p.status]}</Badge>
+            </p>
+          ))}
+          {permits.length === 0 && <p className="text-xs text-muted-foreground">لا توجد تصاريح.</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">الحركات ({movements.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {movements.map((m) => (
+            <p key={m.id} className="text-xs text-muted-foreground">
+              قيام {formatBusinessTime(m.startedAt)} · {m.exitTypeName} ·{" "}
+              <Badge variant="secondary">{MOVEMENT_STATUS_LABEL[m.status]}</Badge>
+            </p>
+          ))}
+          {movements.length === 0 && <p className="text-xs text-muted-foreground">لا توجد حركات.</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">العودات ({returns.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {returns.map((m) => (
+            <p key={m.id} className="text-xs text-muted-foreground">
+              عودة {formatBusinessTime(m.return!.at)} · المدة {m.return!.durationMinutes} د ·{" "}
+              {m.return!.late ? `تأخير ${m.return!.lateMinutes} د` : "في الوقت"}
+              {m.return!.fromAbsence ? ` · بعد غياب ${m.return!.absenceMinutes} د` : ""}
+            </p>
+          ))}
+          {returns.length === 0 && <p className="text-xs text-muted-foreground">لا توجد عودات.</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">بيانات السجل اليومي ({records.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {records.map((r) => (
+            <p key={r.id} className="text-xs text-muted-foreground">
+              #{r.sequence} · {r.businessDate} {formatBusinessTime(r.createdAt)} · {r.statementText}
+            </p>
+          ))}
+          {records.length === 0 && <p className="text-xs text-muted-foreground">لا توجد بيانات.</p>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
