@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useStoreData } from "@/hooks/use-store-data";
 import {
   generateShortCode,
+  getPermits,
   getPersons,
   getSettings,
   logAudit,
@@ -12,8 +13,17 @@ import {
   setSettings,
   uid,
 } from "@/lib/store";
+import { movementsOfPerson } from "@/lib/movements";
+import { getRecords, formatBusinessTime } from "@/lib/daily";
 import { buildDemoPersons, parsePersonsCsv, personsToCsv } from "@/lib/persons-demo";
-import { SHORT_CODE_STRATEGY_LABEL, S_LIST, type Person, type ShortCodeStrategy } from "@/lib/types";
+import {
+  MOVEMENT_STATUS_LABEL,
+  PERMIT_STATUS_LABEL,
+  SHORT_CODE_STRATEGY_LABEL,
+  S_LIST,
+  type Person,
+  type ShortCodeStrategy,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/persons")({
   head: () => ({
@@ -49,6 +60,8 @@ function PersonsPage() {
   const [editing, setEditing] = useState<Person | null>(null);
   const [strategy, setStrategy] = useState<ShortCodeStrategy>(getSettings().shortCodeStrategy);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [profile, setProfile] = useState<Person | null>(null);
+
 
   const filtered = useMemo(() => {
     const term = q.trim();
@@ -312,12 +325,88 @@ function PersonsPage() {
                 <Button size="sm" variant="outline" onClick={() => toggle(p)}>
                   {p.active ? "تعطيل" : "تفعيل"}
                 </Button>
+                <Button size="sm" variant="secondary" onClick={() => setProfile(profile?.id === p.id ? null : p)}>
+                  الملف
+                </Button>
               </div>
+              {profile?.id === p.id && <PersonProfile person={p} />}
+
             </CardContent>
           </Card>
         ))}
         {filtered.length === 0 && <p className="text-sm text-muted-foreground">لا توجد نتائج.</p>}
       </div>
+    </div>
+  );
+}
+
+function PersonProfile({ person }: { person: Person }) {
+  const permits = getPermits().filter((p) => p.persons.some((x) => x.personId === person.id));
+  const movements = movementsOfPerson(person.id);
+  const returns = movements.filter((m) => m.return);
+  const records = getRecords().filter((r) => r.persons.some((x) => x.personId === person.id));
+
+  return (
+    <div className="w-full space-y-3 border-t border-border pt-3">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">التصاريح ({permits.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {permits.map((p) => (
+            <p key={p.id} className="text-xs text-muted-foreground">
+              {p.exitTime} → {p.expectedReturnDate} {p.expectedReturnTime} ·{" "}
+              <Badge variant="secondary">{PERMIT_STATUS_LABEL[p.status]}</Badge>
+            </p>
+          ))}
+          {permits.length === 0 && <p className="text-xs text-muted-foreground">لا توجد تصاريح.</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">الحركات ({movements.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {movements.map((m) => (
+            <p key={m.id} className="text-xs text-muted-foreground">
+              قيام {formatBusinessTime(m.startedAt)} · {m.exitTypeName} ·{" "}
+              <Badge variant="secondary">{MOVEMENT_STATUS_LABEL[m.status]}</Badge>
+            </p>
+          ))}
+          {movements.length === 0 && <p className="text-xs text-muted-foreground">لا توجد حركات.</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">العودات ({returns.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {returns.map((m) => (
+            <p key={m.id} className="text-xs text-muted-foreground">
+              عودة {formatBusinessTime(m.return!.at)} · المدة {m.return!.durationMinutes} د ·{" "}
+              {m.return!.late ? `تأخير ${m.return!.lateMinutes} د` : "في الوقت"}
+              {m.return!.fromAbsence ? ` · بعد غياب ${m.return!.absenceMinutes} د` : ""}
+            </p>
+          ))}
+          {returns.length === 0 && <p className="text-xs text-muted-foreground">لا توجد عودات.</p>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">بيانات السجل اليومي ({records.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {records.map((r) => (
+            <p key={r.id} className="text-xs text-muted-foreground">
+              #{r.sequence} · {r.businessDate} {formatBusinessTime(r.createdAt)} · {r.statementText}
+            </p>
+          ))}
+          {records.length === 0 && <p className="text-xs text-muted-foreground">لا توجد بيانات.</p>}
+        </CardContent>
+      </Card>
     </div>
   );
 }
