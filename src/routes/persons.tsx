@@ -325,7 +325,12 @@ function PersonsPage() {
                 <Button size="sm" variant="outline" onClick={() => toggle(p)}>
                   {p.active ? "تعطيل" : "تفعيل"}
                 </Button>
+                <Button size="sm" variant="secondary" onClick={() => setProfile(profile?.id === p.id ? null : p)}>
+                  الملف
+                </Button>
               </div>
+              {profile?.id === p.id && <PersonProfile person={p} />}
+
             </CardContent>
           </Card>
         ))}
