@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useStoreData } from "@/hooks/use-store-data";
 import {
   generateShortCode,
+  getPermits,
   getPersons,
   getSettings,
   logAudit,
@@ -12,8 +13,17 @@ import {
   setSettings,
   uid,
 } from "@/lib/store";
+import { movementsOfPerson } from "@/lib/movements";
+import { getRecords, formatBusinessTime } from "@/lib/daily";
 import { buildDemoPersons, parsePersonsCsv, personsToCsv } from "@/lib/persons-demo";
-import { SHORT_CODE_STRATEGY_LABEL, S_LIST, type Person, type ShortCodeStrategy } from "@/lib/types";
+import {
+  MOVEMENT_STATUS_LABEL,
+  PERMIT_STATUS_LABEL,
+  SHORT_CODE_STRATEGY_LABEL,
+  S_LIST,
+  type Person,
+  type ShortCodeStrategy,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/persons")({
   head: () => ({
